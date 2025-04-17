@@ -68,8 +68,8 @@ var RandomChaoWheelChaoPrizes = map[string]float64{
 	enums.ChaoIDStrRCPinwheel:           2.0,
 	enums.ChaoIDStrRCPiggyBank:          1.2,
 	enums.ChaoIDStrRCBalloon:            2.0,
-	// enums.ChaoIDStrEasterChao:           3.5, // Event (Easter; Increase Odds During Event)
-	// enums.ChaoIDStrEasterBunny:          3.5, // Event (Easter; Increase Odds During Event)
+	enums.ChaoIDStrEasterChao:           3.5, // Event (Easter; Increase Odds During Event)
+	enums.ChaoIDStrEasterBunny:          3.5, // Event (Easter; Increase Odds During Event)
 	//enums.ChaoIDStrMerlina:              1.5, // Event (Easter: Premium Roulette for Timed Mode Event Only; Obtainable through Rewards List Only for Story Event)
 	//enums.ChaoIDStrPurplePapurisu:       2.5, // Event (Puyo Puyo Quest)
 	//enums.ChaoIDStrSuketoudara:          2.5, // Event (Puyo Puyo Quest)
