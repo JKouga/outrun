@@ -127,7 +127,8 @@ func UnlockedCharacterState() []Character { // every character
 		DefaultCharacter(constobjs.CharacterMarine),
 		DefaultCharacter(constobjs.CharacterWhisper),
 		DefaultCharacter(constobjs.CharacterTangle),
-	}
+		DefaultCharacter(constobjs.CharacterXT),
+  }
 }
 
 func DefaultCharacterState() []Character {
@@ -158,6 +159,7 @@ func DefaultCharacterState() []Character {
 		DefaultLockedCharacter(constobjs.CharacterPSISilver),
 		DefaultRouletteOnlyLockedCharacter(constobjs.CharacterMarine),
 		DefaultRouletteOnlyLockedCharacter(constobjs.CharacterWhisper),
-		DefaultRouletteOnlyLockedCharacter(constobjs.CharacterTangle),
-	}
+	  DefaultRouletteOnlyLockedCharacter(constobjs.CharacterTangle),
+		DefaultRouletteOnlyLockedCharacter(constobjs.CharacterXT),
+  }
 }

@@ -29,29 +29,23 @@ func DrawBattleRival(player netobj.Player, limit int) netobj.BattleState {
 			if err != nil {
 				log.Printf("[WARN] (battle.DrawBattleRival) Unable to get player '%s': %s", playerIDs[index], err.Error())
 			} else {
-				if player.ID != playerIDs[index] && // Calculate High ranks first
-					potentialRival.BattleState.ScoreRecordedToday &&
-					!potentialRival.BattleState.MatchedUpWithRival &&
-					currentTime < potentialRival.BattleState.BattleEndsAt &&
-					potentialRival.PlayerState.Rank >= int64(300) && player.PlayerState.Rank >= int64(300) {
-					rivalID = playerIDs[index]
-					break
-				} else {
-					if player.ID != playerIDs[index] && // Calculate lower rank players
+					if player.ID != playerIDs[index] &&
 						potentialRival.BattleState.ScoreRecordedToday &&
 						!potentialRival.BattleState.MatchedUpWithRival &&
 						currentTime < potentialRival.BattleState.BattleEndsAt &&
-						(potentialRival.PlayerState.Rank >= player.PlayerState.Rank-int64(40)) && (potentialRival.PlayerState.Rank <= player.PlayerState.Rank+int64(40)) {
+						(potentialRival.BattleState.PrevDailyBattleHighScore < player.BattleState.PrevDailyBattleHighScore - 1500000) && 
+						potentialRival.BattleState.PrevDailyBattleHighScore > player.BattleState.PrevDailyBattleHighScore + 1500000{
 						rivalID = playerIDs[index]
 						break
+					} else { 
+						if player.ID != playerIDs[index] && // Player is none of the above, default to fully randomized rival
+						potentialRival.BattleState.ScoreRecordedToday &&
+						!potentialRival.BattleState.MatchedUpWithRival &&
+						currentTime < potentialRival.BattleState.BattleEndsAt {
+							rivalID = playerIDs[index]
+							break
 					}
-				} // else if player.ID != playerIDs[index] && // Player is none of the above, default to fully randomized rival
-				// potentialRival.BattleState.ScoreRecordedToday &&
-				// !potentialRival.BattleState.MatchedUpWithRival &&
-				// currentTime < potentialRival.BattleState.BattleEndsAt {
-				// 	rivalID = playerIDs[index]
-				// 	break
-				// }
+				}
 			}
 			playerIDs[index] = playerIDs[len(playerIDs)-1]
 			playerIDs = playerIDs[:len(playerIDs)-1]

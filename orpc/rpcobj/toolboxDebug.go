@@ -170,6 +170,25 @@ func (t *Toolbox) Debug_ResetChao(uid string, reply *ToolboxReply) error {
 	return nil
 }
 
+func (t *Toolbox) Debug_UnlockAllInChaoState(uid string, reply *ToolboxReply) error {
+	player, err := db.GetPlayer(uid)
+	if err != nil {
+		reply.Status = StatusOtherError
+		reply.Info = "unable to get player: " + err.Error()
+		return err
+	}
+	player.ChaoState = constnetobjs.UnlockedChaoState()
+	err = db.SavePlayer(player)
+	if err != nil {
+		reply.Status = StatusOK
+		reply.Info = "OK"
+		return err
+	}
+	reply.Status = StatusOK
+	reply.Info = "OK"
+	return nil
+}
+
 func (t *Toolbox) Debug_MigrateUser(uidToUID string, reply *ToolboxReply) error {
 	uidSrc := strings.Split(uidToUID, "->")
 	if len(uidSrc) != 2 {
@@ -263,6 +282,25 @@ func (t *Toolbox) Debug_ResetCharacterState(uid string, reply *ToolboxReply) err
 		return err
 	}
 	player.CharacterState = netobj.DefaultCharacterState()
+	err = db.SavePlayer(player)
+	if err != nil {
+		reply.Status = StatusOtherError
+		reply.Info = err.Error()
+		return err
+	}
+	reply.Status = StatusOK
+	reply.Info = "OK"
+	return nil
+}
+
+func (t *Toolbox) Debug_UnlockAllInCharacterState(uid string, reply *ToolboxReply) error {
+	player, err := db.GetPlayer(uid)
+	if err != nil {
+		reply.Status = StatusOtherError
+		reply.Info = "unable to get player: " + err.Error()
+		return err
+	}
+	player.CharacterState = netobj.UnlockedCharacterState()
 	err = db.SavePlayer(player)
 	if err != nil {
 		reply.Status = StatusOtherError
@@ -909,6 +947,40 @@ func (t *Toolbox) Debug_CountPlayers(nothing bool, reply *ToolboxReply) error {
 	}
 	reply.Status = StatusOK
 	reply.Info = "OK - there are " + strconv.Itoa(len(playerIDs)) + " players on this Outrun for Revival instance, and of those, " + strconv.Itoa(numberOfActivePlayers) + " are active (have logged in during the past 2 months)"
+	return nil
+}
+
+func (t *Toolbox) Debug_FixAllChaoStateNumAcquiredValues(nothing bool, reply *ToolboxReply) error {
+	playerIDs := []string{}
+	dbaccess.ForEachKey(consts.DBBucketPlayers, func(k, v []byte) error {
+		playerIDs = append(playerIDs, string(k))
+		return nil
+	})
+	for _, uid := range playerIDs {
+		player, err := db.GetPlayer(uid)
+		if err != nil {
+			reply.Status = StatusOtherError
+			reply.Info = fmt.Sprintf("unable to get player %s: ", uid) + err.Error()
+			return err
+		}
+		chaoState := player.ChaoState
+
+		for i, chao := range chaoState {
+			if chao.Status != enums.ChaoStatusNotOwned {
+				player.ChaoState[i].Acquired = chao.Level + 1
+			} else {
+				player.ChaoState[i].Acquired = 0
+			}
+		}
+		err = db.SavePlayer(player)
+		if err != nil {
+			reply.Status = StatusOtherError
+			reply.Info = fmt.Sprintf("error saving player %s: ", uid) + err.Error()
+			return err
+		}
+	}
+	reply.Status = StatusOK
+	reply.Info = "OK"
 	return nil
 }
 

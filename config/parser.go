@@ -31,6 +31,7 @@ var Defaults = map[string]interface{}{
 	"DAuthorizedConfigFilename":    "authorized_config.json",
 	"DSilenceCampaignConfigErrors": false,
 	"DLegacyCompatibilityMode":     false,
+	"DDisableRegistrations":        false,
 }
 
 var CFile ConfigFile
@@ -59,6 +60,7 @@ type ConfigFile struct {
 	AuthorizedConfigFilename    string `json:"authorizedConfigFilename,omitempty"`
 	SilenceCampaignConfigErrors bool   `json:"silenceCampaignConfigErrors,omitempty"`
 	LegacyCompatibilityMode     bool   `json:"legacyCompatibilityMode,omitempty"` // disables the version check
+	DisableRegistrations        bool   `json:"disableRegistrations,omitempty"` // disables the LoginAlpha path
 }
 
 func Parse(filename string) error {
@@ -86,6 +88,7 @@ func Parse(filename string) error {
 		Defaults["DAuthorizedConfigFilename"].(string),
 		Defaults["DSilenceCampaignConfigErrors"].(bool),
 		Defaults["DLegacyCompatibilityMode"].(bool),
+		Defaults["DDisableRegistrations"].(bool),
 	}
 	file, err := loadFile(filename)
 	if err != nil {

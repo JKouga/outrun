@@ -29,6 +29,8 @@ var CharacterMap = map[string]string{ // TODO: move to consts?
 	"sticks":          enums.CTStrSticks,
 	"tikal":           enums.CTStrTikal,
 	"marine":          enums.CTStrMarine,
+	"tangle":          enums.CTStrTangle,
+	"whisper":         enums.CTStrWhisper,
 	"mephiles":        enums.CTStrMephiles,
 	"psiSilver":       enums.CTStrPSISilver,
 	"espSilver":       enums.CTStrPSISilver,
@@ -40,7 +42,6 @@ var CharacterMap = map[string]string{ // TODO: move to consts?
 	"xmasSonic":       enums.CTStrXMasSonic,
 	"xmasTails":       enums.CTStrXMasTails,
 	"xmasKnuckles":    enums.CTStrXMasKnuckles,
-	// TODO: add Marine to the list
 	"empty": "-1",
 	"none":  "-1",
 }

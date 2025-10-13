@@ -2,11 +2,14 @@ package muxhandlers
 
 import (
 	"encoding/json"
+	"fmt"
+	"math/rand"
 	"strconv"
 	"time"
 
 	"github.com/RunnersRevival/outrun/analytics"
 	"github.com/RunnersRevival/outrun/analytics/factors"
+	"github.com/RunnersRevival/outrun/config"
 	"github.com/RunnersRevival/outrun/config/campaignconf"
 	"github.com/RunnersRevival/outrun/consts"
 	"github.com/RunnersRevival/outrun/db"
@@ -15,6 +18,7 @@ import (
 	"github.com/RunnersRevival/outrun/helper"
 	"github.com/RunnersRevival/outrun/logic"
 	"github.com/RunnersRevival/outrun/logic/conversion"
+	"github.com/RunnersRevival/outrun/logic/roulette"
 	"github.com/RunnersRevival/outrun/netobj"
 	"github.com/RunnersRevival/outrun/obj"
 	"github.com/RunnersRevival/outrun/requests"
@@ -135,25 +139,81 @@ func CommitWheelSpin(helper *helper.Helper) {
 					player.ChaoState[chaoIndex].Status = enums.ChaoStatusOwned
 					player.ChaoState[chaoIndex].Acquired = 1
 					player.ChaoState[chaoIndex].Level = 0
-				}
-				//player.ChaoState[chaoIndex].Level += amountOfItemWon
-				maxChaoLevel := int64(10)
-				if request.Version == "1.1.4" {
-					maxChaoLevel = int64(5)
-				}
-				if player.ChaoState[chaoIndex].Level < maxChaoLevel {
-					player.ChaoState[chaoIndex].Level += amountOfItemWon
-					if player.ChaoState[chaoIndex].Level > maxChaoLevel { // if max chao level (https://www.deviantart.com/vocaloidbrsfreak97/journal/So-Sonic-Runners-just-recently-updated-574789098)
-						excess := player.ChaoState[chaoIndex].Level - maxChaoLevel    // get amount gone over
-						amountOfItemWon -= excess                                     // shave it from prize level
+				} else {
+					// otherwise, level up the chao
+					//player.ChaoState[chaoIndex].Level += amountOfItemWon
+					maxChaoLevel := int64(10)
+					if request.Version == "1.1.4" {
+						maxChaoLevel = int64(5)
+					}
+					if player.ChaoState[chaoIndex].Level < maxChaoLevel {
+						player.ChaoState[chaoIndex].Level += amountOfItemWon
+						player.ChaoState[chaoIndex].Acquired += amountOfItemWon
+						if player.ChaoState[chaoIndex].Level > maxChaoLevel { // if max chao level (https://www.deviantart.com/vocaloidbrsfreak97/journal/So-Sonic-Runners-just-recently-updated-574789098)
+							excess := player.ChaoState[chaoIndex].Level - maxChaoLevel    // get amount gone over
+							amountOfItemWon -= excess                                     // shave it from prize level
+							player.ChaoState[chaoIndex].Level = maxChaoLevel              // reset to maximum
+							player.ChaoState[chaoIndex].Acquired -= excess
+							player.ChaoState[chaoIndex].Status = enums.ChaoStatusMaxLevel // set status to MaxLevel
+						}
+					} else {
 						player.ChaoState[chaoIndex].Level = maxChaoLevel              // reset to maximum
 						player.ChaoState[chaoIndex].Status = enums.ChaoStatusMaxLevel // set status to MaxLevel
+						player.PlayerState.ChaoEggs += 3                              // maxed out; give 3 special eggs as compensation
+						
+						// refresh the Premium Roulette - should fix issue #19 (https://github.com/RunnersRevival/revival_issues/issues/19)
+
+						chaoCanBeLevelled := !player.AllChaoMaxLevel()
+						charactersCanBeLevelled := !player.AllCharactersMaxLevel()
+						fixRarities := func(rarities []int64) ([]int64, bool) {
+							newRarities := []int64{}
+							if !chaoCanBeLevelled && !charactersCanBeLevelled {
+								// Wow, they can't upgrade _anything!_
+								return newRarities, false
+							}
+							if config.CFile.Debug {
+								player.PlayerState.NumRedRings += 150
+								//return []int64{100, 100, 100, 100, 100, 100, 100, 100}, true
+								return []int64{0, 0, 0, 0, 0, 0, 0, 0}, true
+							}
+							for _, r := range rarities {
+								if r == 0 || r == 1 || r == 2 { // Chao
+									if chaoCanBeLevelled {
+										newRarities = append(newRarities, r)
+									} else {
+										newRarities = append(newRarities, 100) // append a character
+									}
+								} else if r == 100 { // character
+									if charactersCanBeLevelled {
+										newRarities = append(newRarities, r)
+									} else {
+										newRarities = append(newRarities, int64(rand.Intn(3))) // append random rarity Chao
+									}
+								} else { // should never happen
+									panic(fmt.Errorf("invalid rarity '" + strconv.Itoa(int(r)) + "'")) // TODO: use better way to handle
+								}
+							}
+							return newRarities, true
+						}
+						
+						player.ChaoRouletteGroup.ChaoWheelOptions = netobj.DefaultChaoWheelOptions(player.PlayerState) // create a new wheel
+						newRarities, ok := fixRarities(player.ChaoRouletteGroup.ChaoWheelOptions.Rarity)
+						if !ok { // if player is entirely unable to upgrade anything
+							// TODO: this method is super-hacky - ideally we'd want to return an error code for this situation
+							player.ChaoRouletteGroup.ChaoWheelOptions.SpinCost = player.PlayerState.NumChaoRouletteTicket + player.PlayerState.NumRedRings // make it impossible for player to use roulette
+						} else { // if player can upgrade
+							player.ChaoRouletteGroup.ChaoWheelOptions.Rarity = newRarities
+						}
+						newItems, newRarities, err := roulette.GetRandomChaoRouletteItems(player.ChaoRouletteGroup.ChaoWheelOptions.Rarity, player.GetAllNonMaxedCharacters(), player.GetAllNonMaxedChao())
+						if err != nil {
+							helper.InternalErr("Error getting new items", err)
+							return
+						}
+						player.ChaoRouletteGroup.WheelChao = newItems
+						player.ChaoRouletteGroup.ChaoWheelOptions.Rarity = newRarities
 					}
-				} else {
-					player.ChaoState[chaoIndex].Level = maxChaoLevel              // reset to maximum
-					player.ChaoState[chaoIndex].Status = enums.ChaoStatusMaxLevel // set status to MaxLevel
-					player.PlayerState.ChaoEggs += 3                              // maxed out; give 3 special eggs as compensation
 				}
+				
 			} else {
 				helper.Warn("item '" + wonItem + "' not found")
 			}

@@ -366,6 +366,36 @@ func QuickPostGameResults(helper *helper.Helper) {
 		subCIndex = player.IndexOfChara(subC.ID) // TODO: check if -1
 	}
 	if request.Closed == 0 { // If the game wasn't exited out of
+		var unsignedScore int64 = int64(uint32(request.Score))
+		if unsignedScore > request.Distance*45000 && gameconf.CFile.EnableVerification {
+			// highly experimental
+			platformName := "Unknown"
+			if player.LastLoginPlatformID == 1 {
+				platformName = "iOS"
+			}
+			if player.LastLoginPlatformID == 2 {
+				platformName = "Android"
+			}
+			timeStr := strconv.Itoa(int(time.Now().Unix()))
+			os.MkdirAll(GAME_RESULT_LOG_DIRECTORY, 0644)
+			deets := []byte(fmt.Sprintf("%s (%s)\r\nVersion: %s (%s)\r\nScore: %v\r\nRings: %v (%v lost), Red Rings: %v\r\nDistance: %v\r\nAnimals: %v\r\nGame-reported cheat result: %s", player.Username, player.ID, request.Version, platformName, request.Score, request.Rings, request.FailureRings, request.RedRings, request.Distance, request.Animals, request.CheatResult))
+			path := GAME_RESULT_LOG_DIRECTORY + player.ID + "_" + timeStr + "_quick.txt"
+			err := ioutil.WriteFile(path, deets, 0644)
+			if err != nil {
+				helper.InternalErr("Unable to log run", err)
+			}
+
+			if gameconf.CFile.PenalizeUnverifiables {
+				request.Rings = 0
+				request.FailureRings = 0
+				request.RedRings = 0
+				request.Animals = 0
+				request.Distance = 0
+				request.Score = 0
+				request.DailyChallengeValue = 0
+				request.DailyChallengeComplete = 0
+			}
+		}
 		var finalRingCount int64 = player.PlayerState.NumRings + request.Rings
 		const maxRingValue = 2147483647 // int32 maximum value
 		if finalRingCount >= maxRingValue {
@@ -712,11 +742,18 @@ func PostGameResults(helper *helper.Helper) {
 
 	if request.Closed == 0 { // If the game wasn't exited out of
 		var unsignedScore int64 = int64(uint32(request.Score))
-		if unsignedScore > request.Distance*25000 && gameconf.CFile.EnableVerification {
+		if unsignedScore > request.Distance*45000 && gameconf.CFile.EnableVerification {
 			// highly experimental
+			platformName := "Unknown"
+			if player.LastLoginPlatformID == 1 {
+				platformName = "iOS"
+			}
+			if player.LastLoginPlatformID == 2 {
+				platformName = "Android"
+			}
 			timeStr := strconv.Itoa(int(time.Now().Unix()))
 			os.MkdirAll(GAME_RESULT_LOG_DIRECTORY, 0644)
-			deets := []byte(fmt.Sprintf("%s (%s)\r\nScore: %v\r\nRings: %v (%v lost), Red Rings: %v\r\nDistance: %v\r\nAnimals: %v\r\nGame-reported cheat result: %s", player.Username, player.ID, request.Score, request.Rings, request.FailureRings, request.RedRings, request.Distance, request.Animals, request.CheatResult))
+			deets := []byte(fmt.Sprintf("%s (%s)\r\nVersion: %s (%s)\r\nScore: %v\r\nRings: %v (%v lost), Red Rings: %v\r\nDistance: %v\r\nAnimals: %v\r\nGame-reported cheat result: %s", player.Username, player.ID, request.Version, platformName, request.Score, request.Rings, request.FailureRings, request.RedRings, request.Distance, request.Animals, request.CheatResult))
 			path := GAME_RESULT_LOG_DIRECTORY + player.ID + "_" + timeStr + ".txt"
 			err := ioutil.WriteFile(path, deets, 0644)
 			if err != nil {
@@ -754,7 +791,7 @@ func PostGameResults(helper *helper.Helper) {
 			player.PlayerState.NumRings += request.Rings
 		}
 		player.PlayerState.NumRedRings += request.RedRings
-		player.PlayerState.NumRouletteTicket += request.RedRings // TODO: URGENT! Remove as soon as possible!
+		//player.PlayerState.NumRouletteTicket += request.RedRings // TODO: URGENT! Remove as soon as possible!
 		player.PlayerState.Animals += request.Animals
 		player.OptionUserResult.NumTakeAllRings += request.Rings
 		player.OptionUserResult.NumTakeAllRings += request.FailureRings

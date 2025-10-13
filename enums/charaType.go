@@ -36,6 +36,7 @@ const (
 	CharaTypeXMasSonic
 	CharaTypeXMasTails
 	CharaTypeXMasKnuckles
+  CharaTypeXT
 )
 
 const (
@@ -71,4 +72,5 @@ const (
 	CTStrXMasSonic       = "301005"
 	CTStrXMasTails       = "301006"
 	CTStrXMasKnuckles    = "301007"
+  CTStrXT              = "301008"
 )

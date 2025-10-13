@@ -279,3 +279,11 @@ var CharacterTangle = obj.Character{
 	0, // used for limit smashing
 	0, // red rings used for limit smashing
 }
+
+var CharacterXT = obj.Character{
+	enums.CTStrXT,
+	2200,
+	NumRedRings,
+	0, // used for limit smashing
+	0, // red rings used for limit smashing
+}
